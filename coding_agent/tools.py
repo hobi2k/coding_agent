@@ -1,54 +1,42 @@
 """
-파일 읽기/쓰기, 터미널 실행 도구.
-WSL / Windows / Linux 경로를 모두 처리.
+LangChain @tool 형식으로 정의한 도구 모음.
+LangGraph 에이전트가 직접 바인딩해서 사용.
+
+도구 목록:
+  read_file    - 파일 읽기
+  write_file   - 파일 생성/덮어쓰기
+  edit_file    - 특정 문자열 찾아 교체 (부분 편집)
+  list_files   - 디렉토리 목록
+  run_command  - 터미널 명령 실행
+  web_search   - DuckDuckGo 웹 검색
 """
 
 import subprocess
-import os
-import sys
-import json
 from pathlib import Path
+from langchain_core.tools import tool
 from coding_agent.config import IS_WINDOWS, IS_WSL, windows_to_wsl_path
-
-
-# ── 도구 설명 (프롬프트 삽입용) ───────────────────────
-
-TOOL_DESCRIPTIONS = """
-사용 가능한 도구:
-
-1. read_file(path)            - 파일 내용 읽기
-2. write_file(path, content)  - 파일 쓰기/생성
-3. run_command(command)       - 터미널 명령 실행
-4. list_files(path=".")       - 디렉토리 목록 확인
-
-도구 호출 시 반드시 아래 JSON 형식으로만 응답하세요:
-{"tool": "도구이름", "args": {"인자명": "값"}}
-
-최종 답변은 JSON 없이 일반 텍스트로 작성하세요.
-"""
 
 
 # ── 경로 정규화 ───────────────────────────────────────
 
-def _normalize_path(path: str) -> str:
-    """
-    WSL 환경에서 Windows 경로(C:\\...)가 들어오면 WSL 경로로 변환.
-    그 외엔 그대로 반환.
-    """
+def _normalize(path: str) -> str:
+    """WSL 환경에서 Windows 경로(C:\\...)를 WSL 경로로 변환."""
     if IS_WSL and len(path) >= 2 and path[1] == ":":
         return windows_to_wsl_path(path)
     return path
 
 
-# ── 도구 구현 ─────────────────────────────────────────
+# ── 파일 도구 ─────────────────────────────────────────
 
+@tool
 def read_file(path: str) -> str:
-    path = _normalize_path(path)
+    """파일 내용을 읽어 반환한다. 긴 파일은 앞 300줄만 반환."""
+    path = _normalize(path)
     try:
         content = Path(path).read_text(encoding="utf-8")
         lines = content.splitlines()
         if len(lines) > 300:
-            content = "\n".join(lines[:300]) + f"\n... ({len(lines)-300}줄 생략)"
+            content = "\n".join(lines[:300]) + f"\n\n... ({len(lines) - 300}줄 생략)"
         return content
     except FileNotFoundError:
         return f"ERROR: 파일 없음 — {path}"
@@ -56,8 +44,10 @@ def read_file(path: str) -> str:
         return f"ERROR: {e}"
 
 
+@tool
 def write_file(path: str, content: str) -> str:
-    path = _normalize_path(path)
+    """파일에 내용을 쓴다. 없으면 생성, 있으면 전체 덮어쓰기."""
+    path = _normalize(path)
     try:
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -67,40 +57,34 @@ def write_file(path: str, content: str) -> str:
         return f"ERROR: {e}"
 
 
-def run_command(command: str, timeout: int = 30) -> str:
-    """
-    WSL: bash -c 로 실행
-    Windows: PowerShell로 실행
-    Linux: bash -c 로 실행
-    """
-    if IS_WINDOWS:
-        cmd = ["powershell", "-Command", command]
-    else:
-        cmd = ["bash", "-c", command]
-
+@tool
+def edit_file(path: str, old_str: str, new_str: str) -> str:
+    """파일에서 old_str을 찾아 new_str로 교체한다 (부분 편집).
+    old_str은 파일 내에서 정확히 1회만 등장해야 한다."""
+    path = _normalize(path)
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            encoding="utf-8",
-            errors="replace",
-        )
-        output = (result.stdout + result.stderr).strip()
-        if not output:
-            return "(출력 없음)"
-        if len(output) > 3000:
-            output = output[:3000] + "\n... (이하 생략)"
-        return output
-    except subprocess.TimeoutExpired:
-        return f"ERROR: {timeout}초 타임아웃 초과"
+        content = Path(path).read_text(encoding="utf-8")
+        count = content.count(old_str)
+        if count == 0:
+            return f"ERROR: 해당 문자열을 찾을 수 없음:\n{old_str}"
+        if count > 1:
+            return (
+                f"ERROR: 동일한 문자열이 {count}곳에 존재. "
+                "더 많은 컨텍스트를 포함해 old_str을 더 구체적으로 지정하세요."
+            )
+        new_content = content.replace(old_str, new_str, 1)
+        Path(path).write_text(new_content, encoding="utf-8")
+        return f"✅ 편집 완료: {path}"
+    except FileNotFoundError:
+        return f"ERROR: 파일 없음 — {path}"
     except Exception as e:
         return f"ERROR: {e}"
 
 
+@tool
 def list_files(path: str = ".") -> str:
-    path = _normalize_path(path)
+    """디렉토리의 파일과 폴더 목록을 반환한다."""
+    path = _normalize(path)
     try:
         entries = []
         for item in sorted(Path(path).iterdir()):
@@ -116,70 +100,58 @@ def list_files(path: str = ".") -> str:
         return f"ERROR: {e}"
 
 
-# ── 도구 파싱 및 디스패처 ─────────────────────────────
+# ── 터미널 도구 ───────────────────────────────────────
 
-TOOL_MAP = {
-    "read_file":   read_file,
-    "write_file":  write_file,
-    "run_command": run_command,
-    "list_files":  list_files,
-}
-
-
-def parse_tool_call(text: str) -> dict | None:
-    """LLM 응답에서 {"tool": ..., "args": ...} JSON을 추출."""
-    text = text.strip()
-
-    # 마크다운 코드 펜스 안에 있는 경우
-    if "```" in text:
-        for block in text.split("```"):
-            cleaned = block.strip().lstrip("json").strip()
-            try:
-                parsed = json.loads(cleaned)
-                if "tool" in parsed:
-                    return parsed
-            except Exception:
-                pass
-
-    # 텍스트 전체가 JSON
+@tool
+def run_command(command: str) -> str:
+    """터미널 명령어를 실행하고 stdout/stderr를 반환한다. 타임아웃 30초."""
+    cmd = ["powershell", "-Command", command] if IS_WINDOWS else ["bash", "-c", command]
     try:
-        parsed = json.loads(text)
-        if "tool" in parsed:
-            return parsed
-    except Exception:
-        pass
-
-    # 텍스트 안에 JSON이 섞인 경우 (중괄호 범위 탐색)
-    start = text.find("{")
-    while start != -1:
-        depth = 0
-        for i, ch in enumerate(text[start:], start):
-            if ch == "{":
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0:
-                    try:
-                        parsed = json.loads(text[start:i+1])
-                        if "tool" in parsed:
-                            return parsed
-                    except Exception:
-                        pass
-                    break
-        start = text.find("{", start + 1)
-
-    return None
-
-
-def execute_tool(call: dict) -> str:
-    name = call.get("tool", "")
-    args = call.get("args", {})
-    fn   = TOOL_MAP.get(name)
-    if not fn:
-        return f"ERROR: 알 수 없는 도구 '{name}'. 사용 가능: {list(TOOL_MAP)}"
-    try:
-        return fn(**args)
-    except TypeError as e:
-        return f"ERROR: 인자 오류 — {e}"
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            encoding="utf-8",
+            errors="replace",
+        )
+        output = (result.stdout + result.stderr).strip()
+        if not output:
+            return "(출력 없음)"
+        return output[:3000] + "\n... (이하 생략)" if len(output) > 3000 else output
+    except subprocess.TimeoutExpired:
+        return "ERROR: 30초 타임아웃 초과"
     except Exception as e:
         return f"ERROR: {e}"
+
+
+# ── 웹 검색 도구 ──────────────────────────────────────
+
+@tool
+def web_search(query: str) -> str:
+    """DuckDuckGo로 웹을 검색하고 상위 결과를 반환한다."""
+    try:
+        from duckduckgo_search import DDGS
+        results = []
+        with DDGS() as ddgs:
+            for r in ddgs.text(query, max_results=5):
+                results.append(
+                    f"제목: {r['title']}\n"
+                    f"URL: {r['href']}\n"
+                    f"요약: {r['body']}\n"
+                )
+        return "\n---\n".join(results) if results else "검색 결과 없음"
+    except Exception as e:
+        return f"ERROR: 웹 검색 실패 — {e}"
+
+
+# ── 도구 목록 (LangGraph 바인딩용) ───────────────────
+
+TOOLS = [
+    read_file,
+    write_file,
+    edit_file,
+    list_files,
+    run_command,
+    web_search,
+]

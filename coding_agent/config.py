@@ -48,7 +48,7 @@ os.environ["HUGGINGFACE_HUB_CACHE"] = str(MODELS_DIR / "hub")
 os.environ["TRANSFORMERS_CACHE"] = str(MODELS_DIR / "hub")
 
 # ── 기본 모델 설정 ────────────────────────────────────
-DEFAULT_MODEL  = "Qwen/Qwen2.5-Coder-7B-Instruct"
+DEFAULT_MODEL  = "bigatuna/Qwen3.5-9b-Sushi-Coder"
 DEFAULT_HOST   = "0.0.0.0"
 DEFAULT_PORT   = 8000
 API_BASE       = f"http://localhost:{DEFAULT_PORT}"

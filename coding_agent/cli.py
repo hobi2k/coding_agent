@@ -3,12 +3,11 @@
 
 사용법:
     uv run agent
-    uv run agent --model Qwen/Qwen2.5-Coder-14B-Instruct
+    uv run agent --model bigatuna/Qwen3.5-9b-Sushi-Coder
     uv run agent --url http://localhost:8001
 """
 
 import argparse
-import sys
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -17,14 +16,13 @@ from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
 
 from coding_agent.config import API_BASE, DEFAULT_MODEL, PLATFORM_NAME, PROJECT_ROOT
-from coding_agent.llm import LLMClient
 from coding_agent.agent import CodingAgent
 
 console = Console()
 
 
-def on_tool_call(name: str, args: dict):
-    args_str = ", ".join(f"{k}={repr(v)[:60]}" for k, v in args.items())
+def on_tool_call(name: str, args):
+    args_str = str(args)[:80]
     console.print(f"  [yellow]🔧 {name}[/yellow]([dim]{args_str}[/dim])")
 
 
@@ -46,15 +44,13 @@ def main():
         f"[dim]플랫폼 : {PLATFORM_NAME}[/dim]\n"
         f"[dim]모델   : {args.model}[/dim]\n"
         f"[dim]서버   : {args.url}[/dim]\n"
+        f"[dim]도구   : read/write/edit_file · list_files · run_command · web_search[/dim]\n"
         f"[dim]명령어 : reset · help · exit[/dim]",
         border_style="cyan",
     ))
 
-    llm   = LLMClient(base_url=args.url, model=args.model)
-    agent = CodingAgent(llm)
-
-    history_file = PROJECT_ROOT / ".agent_history"
-    history      = FileHistory(str(history_file))
+    agent   = CodingAgent(base_url=args.url, model=args.model)
+    history = FileHistory(str(PROJECT_ROOT / ".agent_history"))
 
     while True:
         try:
