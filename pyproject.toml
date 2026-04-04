@@ -28,7 +28,9 @@ agent-server = "coding_agent.server:main"
 agent-dl     = "coding_agent.download:main"
 
 [tool.uv]
-dev-dependencies = []
+dev-dependencies = [
+    "pytest>=8.0",
+]
 
 [[tool.uv.index]]
 name     = "vllm-nightly"

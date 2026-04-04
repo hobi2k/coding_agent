@@ -1,21 +1,25 @@
-"""
-플랫폼(Windows / WSL / Linux) 자동 감지 및 경로 설정.
-모델은 항상 프로젝트 루트의 ./models/ 에 저장.
-"""
+"""플랫폼과 프로젝트 경로를 설정한다."""
 
 import os
-import sys
 import platform
 from pathlib import Path
 
 
 def _project_root() -> Path:
-    """이 파일 기준으로 프로젝트 루트(pyproject.toml 위치)를 반환."""
+    """프로젝트 루트를 계산한다.
+
+    Returns:
+        `pyproject.toml`이 있는 프로젝트 루트 경로.
+    """
     return Path(__file__).resolve().parent.parent
 
 
 def _is_wsl() -> bool:
-    """WSL 환경인지 판별."""
+    """WSL 환경인지 판별한다.
+
+    Returns:
+        현재 실행 환경이 WSL이면 `True`, 아니면 `False`.
+    """
     if platform.system() != "Linux":
         return False
     try:
@@ -26,6 +30,11 @@ def _is_wsl() -> bool:
 
 
 def _is_windows() -> bool:
+    """Windows 환경인지 판별한다.
+
+    Returns:
+        현재 실행 환경이 Windows이면 `True`, 아니면 `False`.
+    """
     return platform.system() == "Windows"
 
 
@@ -56,10 +65,13 @@ API_BASE       = f"http://localhost:{DEFAULT_PORT}"
 # ── WSL ↔ Windows 경로 변환 유틸 ─────────────────────
 
 def to_native_path(path: Path | str) -> str:
-    """
-    현재 플랫폼에 맞는 경로 문자열 반환.
-    WSL에서 실행 중이면 Linux 경로 그대로.
-    Windows에서 실행 중이면 백슬래시로 변환.
+    """현재 플랫폼에 맞는 경로 문자열을 반환한다.
+
+    Args:
+        path: 변환할 경로.
+
+    Returns:
+        현재 플랫폼에서 쓰기 좋은 문자열 경로.
     """
     p = Path(path)
     if IS_WINDOWS:
@@ -68,9 +80,13 @@ def to_native_path(path: Path | str) -> str:
 
 
 def wsl_to_windows_path(wsl_path: str) -> str:
-    """
-    WSL 경로(/mnt/c/...) → Windows 경로(C:\\...) 변환.
-    WSL 환경에서만 의미 있음.
+    """WSL 경로를 Windows 경로로 변환한다.
+
+    Args:
+        wsl_path: `/mnt/c/...` 형태의 WSL 경로.
+
+    Returns:
+        Windows 형식 문자열 경로.
     """
     if wsl_path.startswith("/mnt/") and len(wsl_path) > 6:
         drive = wsl_path[5]          # /mnt/c → c
@@ -80,8 +96,13 @@ def wsl_to_windows_path(wsl_path: str) -> str:
 
 
 def windows_to_wsl_path(win_path: str) -> str:
-    """
-    Windows 경로(C:\\...) → WSL 경로(/mnt/c/...) 변환.
+    """Windows 경로를 WSL 경로로 변환한다.
+
+    Args:
+        win_path: `C:\\...` 형태의 Windows 경로.
+
+    Returns:
+        `/mnt/c/...` 형태의 WSL 경로.
     """
     if len(win_path) >= 2 and win_path[1] == ":":
         drive = win_path[0].lower()

@@ -1,17 +1,11 @@
-"""
-HuggingFace 모델을 ./models/ 폴더에 다운로드.
-
-사용법:
-    uv run agent-dl                                      # 기본 모델
-    uv run agent-dl Qwen/Qwen2.5-Coder-14B-Instruct     # 모델 지정
-"""
+"""모델 다운로드 CLI를 제공한다."""
 
 import sys
 from coding_agent.config import DEFAULT_MODEL, MODELS_DIR
 
 
 def main():
-    # config import 시 HF_HOME이 설정되므로 이후 huggingface_hub가 올바른 경로 사용
+    """모델 다운로드 CLI를 실행한다."""
     from huggingface_hub import snapshot_download
     from rich.console import Console
     from rich.panel import Panel
