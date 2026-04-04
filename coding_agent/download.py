@@ -3,16 +3,23 @@
 import argparse
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
 from coding_agent.config import (
+    DEFAULT_HOST,
+    DEFAULT_PORT,
     DEFAULT_GGUF_QUANT,
     DEFAULT_GGUF_REPO,
     DEFAULT_MODEL,
     MODELS_DIR,
 )
-from coding_agent.ollama_runtime import build_ollama_env, ensure_ollama_binary
+from coding_agent.ollama_runtime import (
+    build_ollama_env,
+    ensure_ollama_binary,
+    ensure_ollama_server,
+)
 
 
 def _safe_repo_name(repo_id: str) -> str:
@@ -127,12 +134,15 @@ def _try_create_ollama_model(model_name: str, modelfile: Path) -> tuple[bool, st
     """
     try:
         binary = ensure_ollama_binary(auto_install=True)
+        ok, message = ensure_ollama_server(DEFAULT_HOST, DEFAULT_PORT)
+        if not ok:
+            return False, message
         subprocess.run(
             [str(binary), "create", model_name, "-f", str(modelfile)],
             check=True,
             env=build_ollama_env(),
         )
-        return True, f"ollama create 완료: {model_name}"
+        return True, f"{message}\nollama create 완료: {model_name}"
     except subprocess.CalledProcessError as exc:
         return False, f"ollama create 실패: {exc}"
     except Exception as exc:
@@ -171,7 +181,6 @@ def main():
             repo_id=args.repo_id,
             filename=filename,
             local_dir=str(local_dir),
-            local_dir_use_symlinks=False,
         )
         gguf_path = Path(path)
         modelfile = _write_modelfile(args.runtime_model, gguf_path)

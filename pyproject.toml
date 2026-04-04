@@ -18,6 +18,7 @@ dependencies = [
     # HuggingFace GGUF 다운로드
     "huggingface-hub",
     "hf-transfer",
+    "zstandard>=0.23",
 ]
 
 [project.scripts]

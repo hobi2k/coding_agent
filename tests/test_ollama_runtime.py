@@ -28,3 +28,16 @@ def test_get_ollama_binary_prefers_system(monkeypatch, tmp_path: Path) -> None:
     system_binary.write_text("", encoding="utf-8")
     monkeypatch.setattr(ollama_runtime.shutil, "which", lambda name: str(system_binary))
     assert ollama_runtime.get_ollama_binary() == system_binary
+
+
+def test_build_ollama_command_uses_given_binary() -> None:
+    from coding_agent.server import build_ollama_command
+
+    assert build_ollama_command("/tmp/ollama") == ["/tmp/ollama", "serve"]
+
+
+def test_ensure_ollama_server_returns_running_when_already_up(monkeypatch) -> None:
+    monkeypatch.setattr(ollama_runtime, "is_ollama_server_running", lambda host, port: True)
+    ok, message = ollama_runtime.ensure_ollama_server()
+    assert ok is True
+    assert "이미 실행 중" in message

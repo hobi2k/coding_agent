@@ -5,10 +5,21 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import tarfile
+import time
 import urllib.request
 from pathlib import Path
+from urllib.error import URLError
+from urllib.request import urlopen
 
-from coding_agent.config import IS_WINDOWS, IS_WSL, MODELS_DIR, PLATFORM_NAME, PROJECT_ROOT
+from coding_agent.config import (
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    IS_WINDOWS,
+    MODELS_DIR,
+    PLATFORM_NAME,
+    PROJECT_ROOT,
+)
 
 VENDOR_ROOT = PROJECT_ROOT / ".vendor" / "ollama"
 
@@ -122,10 +133,13 @@ def install_project_local_ollama() -> Path:
     if IS_WINDOWS:
         shutil.unpack_archive(str(archive), str(root))
     else:
-        subprocess.run(
-            ["tar", "--zstd", "-xf", str(archive), "-C", str(root)],
-            check=True,
-        )
+        import zstandard
+
+        with archive.open("rb") as compressed:
+            dctx = zstandard.ZstdDecompressor()
+            with dctx.stream_reader(compressed) as reader:
+                with tarfile.open(fileobj=reader, mode="r|") as tar:
+                    tar.extractall(path=root)
 
     binary = get_ollama_binary()
     if binary is None:
@@ -164,3 +178,105 @@ def build_ollama_env(host: str | None = None, port: int | None = None) -> dict[s
     if host is not None and port is not None:
         env["OLLAMA_HOST"] = f"{host}:{port}"
     return env
+
+
+def ollama_base_url(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> str:
+    """Ollama 서버의 기본 URL을 반환한다.
+
+    Args:
+        host: 서버 호스트.
+        port: 서버 포트.
+
+    Returns:
+        `http://host:port` 형식 문자열.
+    """
+    return f"http://{host}:{port}"
+
+
+def is_ollama_server_running(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> bool:
+    """Ollama 서버 응답 여부를 확인한다.
+
+    Args:
+        host: 서버 호스트.
+        port: 서버 포트.
+
+    Returns:
+        응답 가능하면 `True`.
+    """
+    try:
+        with urlopen(f"{ollama_base_url(host, port)}/api/tags", timeout=2) as response:
+            return response.status == 200
+    except (URLError, TimeoutError, OSError):
+        return False
+
+
+def _server_log_path() -> Path:
+    """프로젝트 로컬 Ollama 서버 로그 파일 경로를 반환한다.
+
+    Returns:
+        로그 파일 경로.
+    """
+    path = VENDOR_ROOT / "ollama-server.log"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def start_ollama_server(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> subprocess.Popen:
+    """프로젝트 로컬 Ollama 서버를 백그라운드로 시작한다.
+
+    Args:
+        host: 서버 호스트.
+        port: 서버 포트.
+
+    Returns:
+        시작된 프로세스 핸들.
+    """
+    binary = ensure_ollama_binary(auto_install=True)
+    env = build_ollama_env(host, port)
+    log_path = _server_log_path()
+    log_file = log_path.open("a", encoding="utf-8")
+    return subprocess.Popen(
+        [str(binary), "serve"],
+        env=env,
+        stdout=log_file,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+
+
+def wait_for_ollama_server(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, timeout: float = 30.0) -> bool:
+    """Ollama 서버가 준비될 때까지 기다린다.
+
+    Args:
+        host: 서버 호스트.
+        port: 서버 포트.
+        timeout: 최대 대기 시간(초).
+
+    Returns:
+        준비되면 `True`.
+    """
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if is_ollama_server_running(host, port):
+            return True
+        time.sleep(0.5)
+    return False
+
+
+def ensure_ollama_server(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> tuple[bool, str]:
+    """Ollama 서버가 실행 중이도록 보장한다.
+
+    Args:
+        host: 서버 호스트.
+        port: 서버 포트.
+
+    Returns:
+        성공 여부와 상태 메시지.
+    """
+    if is_ollama_server_running(host, port):
+        return True, "ollama 서버 이미 실행 중"
+
+    process = start_ollama_server(host, port)
+    if wait_for_ollama_server(host, port, timeout=30.0):
+        return True, f"ollama 서버 시작 완료 (pid={process.pid})"
+    return False, f"ollama 서버 시작 실패 (pid={process.pid})"
