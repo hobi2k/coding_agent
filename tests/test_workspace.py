@@ -58,3 +58,28 @@ def test_registry_file_is_saved() -> None:
 
     assert path.exists()
     assert json.loads(path.read_text(encoding="utf-8"))["active"] == registry["active"]
+
+
+def test_ensure_workspace_adds_and_activates(tmp_path: Path) -> None:
+    _reset_registry()
+    target = tmp_path / "current_project"
+    target.mkdir()
+
+    ok, message = workspace.ensure_workspace(str(target))
+
+    assert ok is True
+    assert "활성 workspace 변경됨" in message
+    assert workspace.get_active_workspace() == target.resolve()
+
+
+def test_ensure_workspace_reuses_existing_entry(tmp_path: Path) -> None:
+    _reset_registry()
+    target = tmp_path / "reuse_project"
+    target.mkdir()
+    workspace.add_workspace(str(target))
+
+    ok, message = workspace.ensure_workspace(str(target))
+
+    assert ok is True
+    assert "활성 workspace 변경됨" in message
+    assert workspace.get_active_workspace() == target.resolve()

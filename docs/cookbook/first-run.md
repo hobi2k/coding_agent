@@ -8,37 +8,50 @@
 uv sync --dev
 ```
 
-## 2. Download The Default Model
+## 2. Download The Default GGUF
 
-현재 기본 모델은 `bigatuna/Qwen3.5-9b-Sushi-Coder`입니다.
+현재 기본 GGUF 저장소는 `QuantFactory/Qwen2.5-Coder-7B-Instruct-GGUF`입니다.
 
 ```bash
 uv run agent-dl
 ```
 
-직접 모델을 지정할 수도 있습니다.
+직접 저장소를 지정할 수도 있습니다.
 
 ```bash
-uv run agent-dl bigatuna/Qwen3.5-9b-Sushi-Coder
+uv run agent-dl QuantFactory/Qwen2.5-Coder-7B-Instruct-GGUF
 ```
 
-## 3. Start vLLM
+유용한 옵션:
 
-상세 파라미터는 [Server And Runtime Tuning](../reference/server.md)을 보세요.
+```bash
+uv run agent-dl --quant Q4_K_M
+uv run agent-dl --runtime-model my-local-gguf
+uv run agent-dl --skip-ollama-create
+```
 
-기본 실행 예:
+## 3. Start Ollama
 
 ```bash
 uv run agent-server
 ```
 
+`ollama`가 시스템에 없다면, 프로젝트는 공식 배포 파일을 `.vendor/ollama` 아래에 내려받아 프로젝트 로컬 런타임을 준비합니다.
+
+포트를 바꾸고 싶으면:
+
+```bash
+uv run agent-server --port 11435
+```
+
 ## 4. Start The Agent
 
 ```bash
-uv run agent
+cd /path/to/your-project
+agent --model coding-agent-qwen2.5-coder-7b-gguf --url http://localhost:11434
 ```
 
-CLI에서 `status`를 입력하면 서버 연결 상태를 다시 확인할 수 있습니다.
+Windows에서 CLI를 실행하고 WSL에서 Ollama 서버를 띄우는 구조도 가능합니다. 반대로 WSL에서 CLI를 실행하고 Windows Ollama에 붙는 구조도 가능합니다. 중요한 건 `--url`이 실제 서버 주소를 가리키는지입니다.
 
 ## 5. Try A Small Task
 
@@ -51,5 +64,5 @@ CLI에서 `status`를 입력하면 서버 연결 상태를 다시 확인할 수 
 ## Related Docs
 
 - [Quickstart](./start-here.md)
-- [Tool Reference](../reference/tools.md)
+- [Server And Runtime](../reference/server.md)
 - [Architecture Overview](../reference/architecture.md)

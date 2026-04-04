@@ -205,6 +205,10 @@ cython_debug/
 models/*
 !models/.gitkeep
 
+# Project-local runtime artifacts
+.vendor/
+.agent_state/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

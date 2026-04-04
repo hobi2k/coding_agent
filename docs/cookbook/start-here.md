@@ -2,46 +2,36 @@
 
 이 문서는 처음 보는 개발자를 위한 가장 짧은 시작 가이드입니다.
 
-## What This Project Is
+## 이 프로젝트는 무엇인가
 
-`coding_agent`는 로컬 모델을 `vLLM`으로 서빙하고, 그 위에 파일/명령/복구 도구를 붙여 코딩 작업을 수행하는 CLI 에이전트입니다.
+`coding_agent`는:
 
-## Read This Next
+1. GGUF 모델을 내려받고
+2. Ollama로 OpenAI 호환 서버를 띄우고
+3. 현재 폴더를 workspace로 삼는 CLI 에이전트로
+4. 파일 수정, 검색, 검증, 복구까지 수행하는 로컬 코딩 에이전트입니다.
 
-- 구조를 먼저 보고 싶다면 [Architecture Overview](../reference/architecture.md)
-- 바로 실행하고 싶다면 [First Run](./first-run.md)
-- 복구 기능이 궁금하면 [Restore Workflow](./restore-workflow.md)
-
-## Main Commands
+## 가장 짧은 실행 순서
 
 ```bash
+uv sync --dev
 uv run agent-dl
 uv run agent-server
-uv run agent
+
+cd /path/to/your-project
+agent --model coding-agent-qwen2.5-coder-7b-gguf --url http://localhost:11434
 ```
 
-## Main Files
+## 머릿속 모델
 
-- [`coding_agent/config.py`](../../coding_agent/config.py)
-- [`coding_agent/server.py`](../../coding_agent/server.py)
-- [`coding_agent/agent.py`](../../coding_agent/agent.py)
-- [`coding_agent/tools.py`](../../coding_agent/tools.py)
-- [`coding_agent/cli.py`](../../coding_agent/cli.py)
+- 모델 파일은 [`models/gguf`](/home/hosung/pytorch-demo/coding_agent/models/gguf)에 저장됩니다.
+- Ollama용 `Modelfile`은 [`models/ollama`](/home/hosung/pytorch-demo/coding_agent/models/ollama)에 저장됩니다.
+- 세션 메모리와 복구 이력은 각 workspace의 `.agent_state/`에 저장됩니다.
+- `agent`는 실행한 현재 폴더를 자동 workspace로 사용합니다.
 
-## Mental Model
+## 다음에 읽을 문서
 
-1. 모델을 다운로드한다.
-2. vLLM 서버를 띄운다.
-3. CLI 에이전트를 실행한다.
-4. 에이전트는 도구를 사용해 파일을 읽고 수정하고 검증한다.
-5. 잘못된 수정은 복구할 수 있다.
-
-## Important Notes
-
-- 모델 파일은 프로젝트 루트 `models/` 아래에 저장된다.
-- 작업 중 메모리/세션 상태는 `.agent_state/`에 저장된다.
-- 변경 복구를 위해 최근 수정 이력이 기록된다.
-
-## Next
-
-- [First Run](./first-run.md)
+- 실제 실행 흐름: [First Run](./first-run.md)
+- 구조 설명: [Architecture Overview](../reference/architecture.md)
+- 도구 설명: [Tool Reference](../reference/tools.md)
+- 복구 설명: [Restore Workflow](./restore-workflow.md)

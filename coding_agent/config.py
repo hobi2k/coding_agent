@@ -50,16 +50,16 @@ PROJECT_ROOT = _project_root()
 MODELS_DIR   = PROJECT_ROOT / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-# vllm은 HF_HOME 환경변수로 모델 캐시 위치를 제어함
-# 프로젝트 폴더 안으로 고정
-os.environ["HF_HOME"]            = str(MODELS_DIR)
+# Hugging Face 캐시 위치를 프로젝트 폴더 안으로 고정한다.
+os.environ["HF_HOME"] = str(MODELS_DIR)
 os.environ["HUGGINGFACE_HUB_CACHE"] = str(MODELS_DIR / "hub")
-os.environ["TRANSFORMERS_CACHE"] = str(MODELS_DIR / "hub")
 
 # ── 기본 모델 설정 ────────────────────────────────────
-DEFAULT_MODEL  = "bigatuna/Qwen3.5-9b-Sushi-Coder"
-DEFAULT_HOST   = "0.0.0.0"
-DEFAULT_PORT   = 8000
+DEFAULT_GGUF_REPO = "QuantFactory/Qwen2.5-Coder-7B-Instruct-GGUF"
+DEFAULT_GGUF_QUANT = "Q4_K_M"
+DEFAULT_MODEL  = "coding-agent-qwen2.5-coder-7b-gguf"
+DEFAULT_HOST   = "127.0.0.1"
+DEFAULT_PORT   = 11434
 API_BASE       = f"http://localhost:{DEFAULT_PORT}"
 
 # ── WSL ↔ Windows 경로 변환 유틸 ─────────────────────

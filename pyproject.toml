@@ -1,15 +1,13 @@
 [project]
 name = "coding-agent"
 version = "0.1.0"
-description = "Local coding agent powered by vllm + LangGraph"
+description = "Local coding agent powered by GGUF/Ollama + LangGraph"
 requires-python = ">=3.11"
 dependencies = [
-    # vllm nightly — Qwen3.5 reasoning/tool-call parser 지원
-    "vllm ; sys_platform == 'linux'",
     # LangGraph 에이전트 프레임워크
     "langgraph>=0.2",
     "langchain>=0.3",
-    "langchain-openai>=0.2",   # vllm OpenAI 호환 엔드포인트 연결
+    "langchain-openai>=0.2",   # OpenAI 호환 엔드포인트 연결
     "langchain-community>=0.3", # DuckDuckGo 검색 도구
     # 웹 검색
     "duckduckgo-search>=6.0",
@@ -17,7 +15,7 @@ dependencies = [
     "requests",
     "rich",
     "prompt_toolkit",
-    # HuggingFace 모델 다운로드
+    # HuggingFace GGUF 다운로드
     "huggingface-hub",
     "hf-transfer",
 ]
@@ -26,25 +24,12 @@ dependencies = [
 agent        = "coding_agent.cli:main"
 agent-server = "coding_agent.server:main"
 agent-dl     = "coding_agent.download:main"
+agent-setup  = "coding_agent.ollama_runtime:install_project_local_ollama"
 
 [tool.uv]
 dev-dependencies = [
     "pytest>=8.0",
 ]
-
-[[tool.uv.index]]
-name     = "vllm-nightly"
-url      = "https://wheels.vllm.ai/nightly"
-explicit = true
-
-[[tool.uv.index]]
-name = "pytorch-cuda"
-url  = "https://download.pytorch.org/whl/cu130"
-explicit = true
-
-[tool.uv.sources]
-vllm  = [{ index = "vllm-nightly", marker = "sys_platform == 'linux'" }]
-torch = [{ index = "pytorch-cuda", marker = "sys_platform == 'linux'" }]
 
 [build-system]
 requires      = ["hatchling"]

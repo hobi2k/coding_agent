@@ -294,7 +294,7 @@ def _update_working_memory(
 
 
 def check_server_connection(base_url: str = API_BASE, timeout: float = 3.0) -> tuple[bool, str]:
-    """vLLM OpenAI 호환 서버의 연결 상태를 점검한다.
+    """OpenAI 호환 서버의 연결 상태를 점검한다.
 
     Args:
         base_url: 점검할 서버 주소.
@@ -336,7 +336,7 @@ def detect_restore_intent(
     Args:
         user_input: 사용자의 현재 요청.
         recent_changes: 최근 변경 이력 요약.
-        base_url: 라우터가 호출할 서버 주소.
+        base_url: OpenAI 호환 서버 주소.
         model: 라우팅에 사용할 모델 이름.
 
     Returns:
@@ -389,7 +389,7 @@ def build_agent(base_url: str = API_BASE, model: str = DEFAULT_MODEL):
     """LangGraph 에이전트 그래프를 생성한다.
 
     Args:
-        base_url: vLLM OpenAI 호환 서버 주소.
+        base_url: OpenAI 호환 서버 주소.
         model: 사용할 모델 이름.
 
     Returns:
@@ -398,7 +398,7 @@ def build_agent(base_url: str = API_BASE, model: str = DEFAULT_MODEL):
 
     llm = ChatOpenAI(
         base_url=f"{base_url}/v1",
-        api_key="dummy",           # vllm은 API 키 불필요
+        api_key="dummy",           # 로컬 OpenAI 호환 서버는 더미 키로 충분하다.
         model=model,
         temperature=0.3,
         max_tokens=4096,
@@ -459,7 +459,7 @@ class CodingAgent:
         """에이전트 래퍼를 초기화한다.
 
         Args:
-            base_url: vLLM OpenAI 호환 서버 주소.
+            base_url: OpenAI 호환 서버 주소.
             model: 사용할 모델 이름.
         """
         self.base_url = base_url

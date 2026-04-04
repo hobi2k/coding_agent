@@ -4,24 +4,25 @@
 
 ## Summary
 
-이 프로젝트는 "로컬 모델 + vLLM + 도구 기반 코딩 에이전트"의 1차 동작 버전입니다.
-단순 챗봇 수준은 넘었고, 파일 읽기/쓰기/편집, 명령 실행, 복구, 작업 메모, 대화 compact까지 들어간 상태입니다.
+이 프로젝트는 GGUF + Ollama 기반의 로컬 코딩 에이전트로 전환된 상태입니다. 파일 도구, 명령 실행, 복구, 작업 메모리, 대화 compact, multi-workspace CLI까지 들어가 있습니다.
 
 ## What Exists Today
 
 ### Runtime
 
-- 프로젝트 루트 `models/` 아래로 Hugging Face 캐시를 고정
 - `uv run agent-dl`
 - `uv run agent-server`
-- `uv run agent`
+- `agent`
+- GGUF 다운로드와 Modelfile 생성
+- Ollama OpenAI 호환 서버 연결
 
 ### Agent
 
 - LangGraph 기반 에이전트 루프
-- vLLM OpenAI 호환 API 연결
+- OpenAI 호환 API 연결
 - 서버 연결 체크
-- 최근 변경 복구 라우팅
+- 복구 의도 라우팅
+- working memory / compact
 
 ### Tools
 
@@ -37,6 +38,13 @@
 - `run_command`
 - `web_search`
 
+### Workspace
+
+- 현재 폴더 자동 workspace 시작
+- `/add_dir`
+- `/use_dir`
+- `/workspaces`
+
 ### Safety And State
 
 - workspace 바깥 경로 접근 차단
@@ -48,28 +56,27 @@
 
 ### Tests
 
-- pytest 기반 테스트 추가
-- 도구/에이전트/복구/compact 흐름 검증
+- 도구/에이전트/복구/compact/workspace 테스트
+- GGUF 다운로드 헬퍼 테스트
+- Ollama 서버 명령 구성 테스트
+
+## What Changed Recently
+
+- 기존 Hugging Face/vLLM 캐시 삭제
+- [`models`](/home/hosung/pytorch-demo/coding_agent/models) 아래 구조를 `gguf/`, `ollama/` 중심으로 정리
+- 기본 런타임을 Ollama로 전환
+- 기본 GGUF 저장소를 `QuantFactory/Qwen2.5-Coder-7B-Instruct-GGUF`로 전환
+- 문서와 README를 새 구조 기준으로 재정리
 
 ## Current Limitations
 
-- 기본 서버 파라미터는 아직 사용자 GPU 현실에 맞게 더 보수적으로 조정될 필요가 있음
-- 기본 모델이 `bigatuna/Qwen3.5-9b-Sushi-Coder`라서 16GB VRAM 환경에서는 여유가 적을 수 있음
-- 복구 의도 라우팅은 문맥 기반으로 바뀌었지만, 여전히 더 정교한 self-check 루프가 가능함
-- 문서 지시 해석 능력은 시스템 프롬프트와 도구 조합 수준이며, 별도 planner 노드는 아직 없음
-- 검증 결과 축적은 파일 기반 메모리 중심이며 장기 세션 분석용 DB는 아직 없음
+- 시스템에 `ollama`가 없더라도 프로젝트 로컬 런타임 자동 준비 경로가 들어가 있습니다. 다만 실제 다운로드와 실기동은 아직 이 세션에서 끝까지 검증하지 않았습니다.
+- planner 품질은 여전히 시스템 프롬프트 + 도구 조합 수준입니다.
+- 장기 세션 저장은 파일 기반이며 DB는 아직 없습니다.
 
 ## Suggested Next Work
 
-1. 서버 기본 파라미터를 더 현실적인 값으로 조정
-2. 모델 프로필을 "전용 실행"과 "공유 GPU"로 분리
-3. self-check와 verification planning 강화
-4. 문서 기반 작업 계획 노드 추가
-
-## Related Docs
-
-- [Documentation Hub](./README.md)
-- [Quickstart](./cookbook/start-here.md)
-- [Architecture](./reference/architecture.md)
-- [Memory And Compact](./reference/memory.md)
-- [Recovery And Rollback](./reference/recovery.md)
+1. Ollama 설치 후 실제 `agent-dl -> agent-server -> agent` 실기동 검증
+2. Windows/WSL 교차 실행 문서 보강
+3. planner/self-check 루프 강화
+4. GGUF 모델 프로필 선택 UX 개선

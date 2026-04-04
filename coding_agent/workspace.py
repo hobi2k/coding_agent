@@ -155,6 +155,30 @@ def set_active_workspace(identifier: str) -> tuple[bool, str]:
     return True, f"활성 workspace 변경됨: {workspace['name']} -> {workspace['path']}"
 
 
+def ensure_workspace(path: str, name: str | None = None) -> tuple[bool, str]:
+    """주어진 디렉터리를 등록하고 활성 workspace로 만든다.
+
+    Args:
+        path: 보장할 디렉터리 경로.
+        name: 필요 시 등록할 표시용 이름.
+
+    Returns:
+        성공 여부와 결과 메시지.
+    """
+    target = Path(path).expanduser().resolve()
+    add_ok, add_message = add_workspace(str(target), name=name)
+    if not add_ok:
+        return False, add_message
+
+    active_ok, active_message = set_active_workspace(str(target))
+    if not active_ok:
+        return False, active_message
+
+    if "이미 등록된 workspace" in add_message:
+        return True, active_message
+    return True, f"{add_message}\n{active_message}"
+
+
 def format_workspaces() -> str:
     """등록된 workspace 목록을 사람이 읽기 쉽게 포맷한다.
 

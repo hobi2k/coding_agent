@@ -4,16 +4,15 @@
 
 ## Goal
 
-이 프로젝트를 "로컬에서 실무에 쓸 수 있는 코딩 에이전트"로 다듬는다.
-핵심은 모델 자체보다 도구 계층, 검증 루프, 메모리 compact, 복구 가능성이다.
+이 프로젝트를 "GGUF + Ollama 기반으로 실무에 쓸 수 있는 로컬 코딩 에이전트"로 다듬는다. 핵심은 모델 자체보다 도구 계층, 검증 루프, 메모리 compact, 복구 가능성, workspace UX다.
 
 ## Priorities
 
-### 1. Runtime Tuning
+### 1. Runtime Reliability
 
-- RTX 5080 16GB 기준 현실적인 `gpu-util`, `max-len` 기본값 적용
-- 사용 시나리오별 서버 프로필 문서화
-- 모델별 서버 옵션 분리
+- `agent-dl -> agent-server -> agent` 전체 실기동 검증
+- Ollama 설치 전/후 UX 정리
+- GGUF 양자화 선택 UX 개선
 
 ### 2. Verification Quality
 
@@ -29,15 +28,15 @@
 
 ### 4. Memory Quality
 
-- compact summary의 품질 개선
+- compact summary 품질 개선
 - 최근 도구 결과에서 중요한 정보만 더 잘 추출
-- 장기적으로 SQLite 전환 여부 검토
+- 필요 시 SQLite 전환 검토
 
 ### 5. Docs Quality
 
-- cookbook 확장
-- 기능별 reference 유지
-- 파라미터 튜닝 문서 강화
+- Ollama 설치/실행 cookbook 추가
+- Windows/WSL 교차 실행 가이드 확장
+- 기능별 reference를 코드와 계속 동기화
 
 ## Workstreams
 
@@ -48,17 +47,19 @@
 
 ### Recovery
 
-- 복구 대상을 1건 이상 선택할 수 있는 UX
 - 복구 전 미리보기 기능 검토
+- 여러 변경 중 선택 복구 UX 검토
 
 ### CLI
 
 - `status` 확장
 - working memory 상태 요약 표시 검토
+- startup diagnostics 보강
 
 ## Definition Of Better
 
 - 처음 보는 개발자가 문서만 읽고 실행 가능
+- 원하는 폴더에서 `agent`로 바로 작업 가능
 - 에이전트가 수정 후 검증까지 수행 가능
 - 잘못 고치면 복구 가능
 - 긴 세션에서도 컨텍스트가 무너지지 않음
@@ -66,6 +67,6 @@
 ## Related Docs
 
 - [Documentation Hub](./README.md)
-- [Server And Runtime Tuning](./reference/server.md)
+- [Server And Runtime](./reference/server.md)
 - [Memory And Compact](./reference/memory.md)
 - [Recovery And Rollback](./reference/recovery.md)

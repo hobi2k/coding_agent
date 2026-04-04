@@ -1,6 +1,7 @@
 """대화형 코딩 에이전트 CLI를 제공한다."""
 
 import argparse
+from pathlib import Path
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -13,6 +14,7 @@ from coding_agent.config import API_BASE, DEFAULT_MODEL, PLATFORM_NAME
 from coding_agent.agent import CodingAgent, check_server_connection
 from coding_agent.workspace import (
     add_workspace,
+    ensure_workspace,
     format_workspaces,
     get_active_workspace,
     set_active_workspace,
@@ -107,17 +109,30 @@ def main():
     parser = argparse.ArgumentParser(description="로컬 코딩 에이전트")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--url",   default=API_BASE)
+    parser.add_argument(
+        "--workspace",
+        default=".",
+        help="시작할 작업 디렉터리. 기본값은 현재 폴더.",
+    )
     args = parser.parse_args()
+
+    ok, message = ensure_workspace(args.workspace)
+    if not ok:
+        console.print(f"[red]{message}[/red]")
+        raise SystemExit(1)
 
     console.print(Panel.fit(
         f"[bold cyan]🤖 로컬 코딩 에이전트[/bold cyan]\n"
         f"[dim]플랫폼 : {PLATFORM_NAME}[/dim]\n"
         f"[dim]모델   : {args.model}[/dim]\n"
         f"[dim]서버   : {args.url}[/dim]\n"
+        f"[dim]작업폴더: {Path(get_active_workspace())}[/dim]\n"
         f"[dim]도구   : read/write/edit/replace_block · list/find/search · change-log/restore · run_command · web_search[/dim]\n"
         f"[dim]명령어 : reset · status · help · exit · /add_dir · /use_dir · /workspaces[/dim]",
         border_style="cyan",
     ))
+    if message:
+        console.print(f"[dim]{message}[/dim]")
     render_status(args.url)
 
     agent   = CodingAgent(base_url=args.url, model=args.model)
